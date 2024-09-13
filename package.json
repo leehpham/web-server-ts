@@ -1,0 +1,47 @@
+{
+  "name": "web-server-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "npm run build -- --watch",
+    "start": "ts-node-dev --no-notify --exit-child ./src/main.ts",
+    "lint": "eslint ./src/ ./__tests__",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "jest",
+    "test:watch": "npm run test -- --watch",
+    "test:learning": "npm run test -- -c ./jest.config.learning.js",
+    "test:learning:watch": "npm run test:learning -- --watch",
+    "test:unit": "npm run test -- -c ./jest.config.unit.js",
+    "test:unit:watch": "npm run test:unit -- --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.9.1",
+    "@faker-js/faker": "^8.4.1",
+    "@jest/globals": "^29.7.0",
+    "@stylistic/eslint-plugin-js": "^2.7.2",
+    "@stylistic/eslint-plugin-ts": "^2.7.2",
+    "@types/eslint__js": "^8.42.3",
+    "@types/lodash": "^4.17.7",
+    "@types/node": "^22.5.4",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "eslint": "^9.10.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "ts-jest": "^29.2.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.4.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "reflect-metadata": "^0.2.2",
+    "typedi": "^0.10.0"
+  }
+}

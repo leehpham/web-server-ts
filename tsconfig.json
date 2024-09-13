@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    /* Projects */
+
+    /* Language and Environment */
+    "target": "es2019",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* Modules */
+    "module": "commonjs",
+
+    /* JavaScript Support */
+
+    /* Emit */
+    "sourceMap": true,
+    "outDir": "./dist/",
+    "removeComments": true,
+    "noEmitOnError": true,
+
+    /* Interop Constraints */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+
+    /* Completeness */
+    "skipLibCheck": true
+  },
+  "include": ["./src/"]
+}
