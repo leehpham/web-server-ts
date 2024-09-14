@@ -39,3 +39,33 @@ function newConn(socket: net.Socket): void {
     }
   });
 }
+
+// A promise-based API for TCP sockets.
+type TCPConn = {
+  // The JS socket object.
+  socket: net.Socket;
+  // The callbacks of the promise of the current read
+  reader: null | {
+    resolve: (value: Buffer) => void;
+    reject: (reason: Error) => void;
+  };
+};
+
+// create a wrapper from net.Socket
+function soInit(socket: net.Socket): TCPConn {
+  const conn: TCPConn = {
+    socket: socket,
+    reader: null,
+  };
+  socket.on("data", (data: Buffer) => {
+    console.assert(conn.reader);
+    // pause the "data" event until the next read.
+    conn.socket.pause();
+    // fulfill the promise of the current read.
+    conn.reader!.resolve(data);
+    conn.reader = null;
+  });
+  return conn;
+}
+
+function soRead(conn: TCPConn): Promise<Buffer> {}
