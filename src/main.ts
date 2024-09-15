@@ -4,7 +4,11 @@ import "reflect-metadata";
 import * as net from "node:net";
 
 // The net.createServer() function creates a TCP server whose type is net.Server.
-const server = net.createServer();
+const server = net.createServer({
+  // Since the "data" event is paused until we read the socket,
+  // the socket should be paused by default after it is created.
+  pauseOnConnect: true, // required by `TCPConn`
+});
 // Registers the callback newConn.
 // The runtime will automatically perform the accept operation and invoke the callback with
 // the new connection as an argument of type net.Socket.
@@ -44,6 +48,10 @@ function newConn(socket: net.Socket): void {
 type TCPConn = {
   // The JS socket object.
   socket: net.Socket;
+  // from the "error" event
+  err: null | Error;
+  // EOF, from the "end" event
+  ended: boolean;
   // The callbacks of the promise of the current read
   reader: null | {
     resolve: (value: Buffer) => void;
@@ -55,6 +63,8 @@ type TCPConn = {
 function soInit(socket: net.Socket): TCPConn {
   const conn: TCPConn = {
     socket: socket,
+    err: null,
+    ended: false,
     reader: null,
   };
   socket.on("data", (data: Buffer) => {
@@ -65,7 +75,31 @@ function soInit(socket: net.Socket): TCPConn {
     conn.reader!.resolve(data);
     conn.reader = null;
   });
+  socket.on("end", () => {
+    // this also fulfills the current read.
+    conn.ended = true;
+    if (conn.reader) {
+      conn.reader.resolve(Buffer.from("")); // EOF
+      conn.reader = null;
+    }
+  });
+  socket.on("error", (err: Error) => {
+    // errors are also delivered to the current read.
+    conn.err = err;
+    if (conn.reader) {
+      conn.reader.reject(err);
+      conn.reader = null;
+    }
+  });
   return conn;
 }
 
-function soRead(conn: TCPConn): Promise<Buffer> {}
+function soRead(conn: TCPConn): Promise<Buffer> {
+  console.assert(!conn.reader); // no concurrent calls
+  return new Promise((resolve, reject) => {
+    // save the promise callbacks
+    conn.reader = { resolve: resolve, reject: reject };
+    // and resume the "data" event to fulfill the promise later.
+    conn.socket.resume();
+  });
+}
