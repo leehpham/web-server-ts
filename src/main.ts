@@ -9,6 +9,7 @@ const server = net.createServer({
   // the socket should be paused by default after it is created.
   pauseOnConnect: true, // required by `TCPConn`
 });
+
 // Registers the callback newConn.
 // The runtime will automatically perform the accept operation and invoke the callback with
 // the new connection as an argument of type net.Socket.
@@ -20,9 +21,17 @@ server.on("error", (err: Error) => {
 // net.Server has a listen() method to bind and listen on an address.
 server.listen({ host: "127.0.0.1", port: 1234 });
 
-function newConn(socket: net.Socket): void {
+async function newConn(socket: net.Socket): Promise<void> {
   console.log("new connection", socket.remoteAddress, socket.remotePort);
+  try {
+    await serveClient(socket);
+  } catch (exc) {
+    console.error("exeption:", exc);
+  } finally {
+    socket.destroy();
+  }
 
+  // TODO: remove later
   // The relevant events for reading from a socket are "data" and "end".
   // The "end" event is invoked when the peer has ended the transmission.
   socket.on("end", () => {
@@ -42,6 +51,20 @@ function newConn(socket: net.Socket): void {
       socket.end(); // this will send FIN and close the connection.
     }
   });
+}
+
+// echo server
+async function serveClient(socket: net.Socket): Promise<void> {
+  const conn: TCPConn = soInit(socket);
+  while (true) {
+    const data = await soRead(conn);
+    if (data.length === 0) {
+      console.log("end connection");
+      break;
+    }
+    console.log("data", data);
+    await soWrite(conn, data);
+  }
 }
 
 // A promise-based API for TCP sockets.
@@ -94,12 +117,39 @@ function soInit(socket: net.Socket): TCPConn {
   return conn;
 }
 
+// returns an empty `Buffer` after EOF.
 function soRead(conn: TCPConn): Promise<Buffer> {
   console.assert(!conn.reader); // no concurrent calls
   return new Promise((resolve, reject) => {
+    // if the connection is not readable, complete the promise now.
+    if (conn.err) {
+      reject(conn.err);
+      return;
+    }
+    if (conn.ended) {
+      resolve(Buffer.from("")); // EOF
+      return;
+    }
     // save the promise callbacks
     conn.reader = { resolve: resolve, reject: reject };
     // and resume the "data" event to fulfill the promise later.
     conn.socket.resume();
+  });
+}
+
+function soWrite(conn: TCPConn, data: Buffer): Promise<void> {
+  console.assert(data.length > 0);
+  return new Promise((resolve, reject) => {
+    if (conn.err) {
+      reject(conn.err);
+      return;
+    }
+    conn.socket.write(data, (err?: Error) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
   });
 }
