@@ -15,22 +15,15 @@ const server = net.createServer({
 // the new connection as an argument of type net.Socket.
 // This callback is registered once, but will be called for each new connection.
 server.on("connection", newConn);
+
 server.on("error", (err: Error) => {
   throw err;
 });
+
 // net.Server has a listen() method to bind and listen on an address.
 server.listen({ host: "127.0.0.1", port: 1234 });
 
 async function newConn(socket: net.Socket): Promise<void> {
-  console.log("new connection", socket.remoteAddress, socket.remotePort);
-  try {
-    await serveClient(socket);
-  } catch (exc) {
-    console.error("exeption:", exc);
-  } finally {
-    socket.destroy();
-  }
-
   // TODO: remove later
   // The relevant events for reading from a socket are "data" and "end".
   // The "end" event is invoked when the peer has ended the transmission.
@@ -51,6 +44,16 @@ async function newConn(socket: net.Socket): Promise<void> {
       socket.end(); // this will send FIN and close the connection.
     }
   });
+
+  // new logic
+  console.log("new connection", socket.remoteAddress, socket.remotePort);
+  try {
+    await serveClient(socket);
+  } catch (exc) {
+    console.error("exeption:", exc);
+  } finally {
+    socket.destroy();
+  }
 }
 
 // echo server
@@ -69,17 +72,17 @@ async function serveClient(socket: net.Socket): Promise<void> {
 
 // A promise-based API for TCP sockets.
 type TCPConn = {
-  // The JS socket object.
+  /** The JS socket object. */
   socket: net.Socket;
-  // from the "error" event
-  err: null | Error;
-  // EOF, from the "end" event
+  /** from the "error" event */
+  err: Error | null;
+  /** EOF, from the "end" event */
   ended: boolean;
-  // The callbacks of the promise of the current read
-  reader: null | {
+  /** The callbacks of the promise of the current read */
+  reader: {
     resolve: (value: Buffer) => void;
     reject: (reason: Error) => void;
-  };
+  } | null;
 };
 
 // create a wrapper from net.Socket
@@ -90,6 +93,7 @@ function soInit(socket: net.Socket): TCPConn {
     ended: false,
     reader: null,
   };
+
   socket.on("data", (data: Buffer) => {
     console.assert(conn.reader);
     // pause the "data" event until the next read.
@@ -98,6 +102,8 @@ function soInit(socket: net.Socket): TCPConn {
     conn.reader!.resolve(data);
     conn.reader = null;
   });
+
+  // The "end" event is invoked when the peer has ended the transmission.
   socket.on("end", () => {
     // this also fulfills the current read.
     conn.ended = true;
@@ -106,6 +112,7 @@ function soInit(socket: net.Socket): TCPConn {
       conn.reader = null;
     }
   });
+
   socket.on("error", (err: Error) => {
     // errors are also delivered to the current read.
     conn.err = err;
@@ -114,6 +121,7 @@ function soInit(socket: net.Socket): TCPConn {
       conn.reader = null;
     }
   });
+
   return conn;
 }
 
