@@ -52,20 +52,20 @@ function soInit(socket: net.Socket): TCPConn {
     ended: false,
     reader: null,
   };
-  socket.on("data", (data: Buffer) => {
+  conn.socket.on("data", (data: Buffer) => {
     console.assert(conn.reader);
     conn.socket.pause();
     conn.reader!.resolve(data);
     conn.reader = null;
   });
-  socket.on("end", () => {
+  conn.socket.on("end", () => {
     conn.ended = true;
     if (conn.reader) {
       conn.reader.resolve(Buffer.from("")); // EOF
       conn.reader = null;
     }
   });
-  socket.on("error", (err: Error) => {
+  conn.socket.on("error", (err: Error) => {
     conn.err = err;
     if (conn.reader) {
       conn.reader.reject(err);
